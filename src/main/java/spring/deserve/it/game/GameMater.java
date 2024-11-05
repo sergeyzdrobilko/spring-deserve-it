@@ -1,38 +1,69 @@
 package spring.deserve.it.game;
 
 import spring.deserve.it.api.Inject;
+import spring.deserve.it.api.RPSEnum;
 
 public class GameMater {
-
-    @Inject
-    private PaperSpider spider1;
-    @Inject
-    private StatisticalSpider spider2;
-
-    @Inject
-    private HistoricalService historicalService;
+    @Inject PaperSpider       spider1 = new PaperSpider();
+    @Inject StatisticalSpider spider2 = new StatisticalSpider();
+    @Inject HistoricalService historicalService;
 
 
     public void fight() {
-        System.out.println("The battle begins!");
+        int battleId = 0;
+        // Увеличиваем ID боя для каждого нового боя
+        battleId++;
+        System.out.println("Начинаем бой №" + battleId + " между " + spider1.getClass()
+                                                                            .getSimpleName() + " и " + spider2.getClass()
+                                                                                                              .getSimpleName() + "!");
 
-        // Пауки атакуют друг друга до тех пор, пока один не умрет
         while (spider1.isAlive() && spider2.isAlive()) {
-            System.out.println("PaperSpider attacks: " + spider1.fight(spider2, 1));
-            spider2.loseLife();
-            if (!spider2.isAlive()) {
-                System.out.println("StoneSpider has been defeated!");
-                break;
+            RPSEnum move1 = spider1.fight(spider2, battleId);  // Передаём оппонента и battleId
+            RPSEnum move2 = spider2.fight(spider1, battleId);  // Передаём оппонента и battleId
+
+            // Сохраняем историю хода для каждого паука
+            historicalService.saveHistory(
+                    battleId, HistoricalService.Move.builder()
+                                                    .player1Id(spider1.hashCode())
+                                                    .player1Move(move1)
+                                                    .player2Id(spider2.hashCode())
+                                                    .player2Move(move2)
+                                                    .build()
+            );
+            System.out.println("Ходы");
+            System.out.println("----");
+            System.out.printf("%10s : %-15s\n", move1, spider1.getClass().getSimpleName());
+            System.out.printf("%10s : %-15s\n", move2, spider2.getClass().getSimpleName());
+
+            // Логика боя
+            if (move1 == RPSEnum.ROCK && move2 == RPSEnum.SCISSORS) {
+                spider2.loseLife();
+            } else if (move1 == RPSEnum.SCISSORS && move2 == RPSEnum.PAPER) {
+                spider2.loseLife();
+            } else if (move1 == RPSEnum.PAPER && move2 == RPSEnum.ROCK) {
+                spider2.loseLife();
+            } else {
+                spider1.loseLife();
             }
 
-            System.out.println("StoneSpider attacks: " + spider2.fight(spider1, 1));
-            spider1.loseLife();
-            if (!spider1.isAlive()) {
-                System.out.println("PaperSpider has been defeated!");
-            }
+            System.out.println("Жизни игроков:");
+            System.out.println("--------------");
+            System.out.printf("%10s : %-20s\n", spider1.getLives(), spider1.getClass().getSimpleName());
+            System.out.printf("%10s : %-20s\n", spider2.getLives(), spider2.getClass().getSimpleName());
         }
 
-        System.out.println("The battle is over!");
+        // Определяем победителя
+        String winner = spider1.isAlive()
+                        ? spider1.getClass().getSimpleName()
+                        : spider2.getClass().getSimpleName();
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        System.out.println(" Бой №" + battleId + " окончен! Победитель: " + winner);
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     }
 
+
+
+/*    Создать аннотацию синглтон который управляется через Application Context
+
+    Context будет создавать фабрику и в нео будут все ходить в контекст*/
 }
