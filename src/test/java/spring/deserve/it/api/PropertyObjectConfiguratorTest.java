@@ -19,7 +19,7 @@ class PropertyObjectConfiguratorTest {
         Spider spider = new PaperSpider();
 
         // Внедряем свойства
-        injector.injectProperties(spider);
+        injector.configure(spider);
 
         // Проверяем, что значение lives установилось из application.properties
         assertEquals(5, spider.getLives(), "Expected 5 lives to be injected from properties");
