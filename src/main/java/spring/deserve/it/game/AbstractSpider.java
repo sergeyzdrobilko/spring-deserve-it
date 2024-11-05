@@ -12,12 +12,10 @@ public abstract class AbstractSpider implements Spider {
     @InjectProperty("spider.default.lives")
     private int lives;
 
-//    @InjectProperty("spring.application.name")
-    private int s;
-
     public boolean isAlive() {
         return lives > 0;
     }
+
     public void loseLife() {
         if (lives > 0) {
             lives--;
