@@ -1,6 +1,5 @@
 package spring.deserve.it.game;
 
-
 import spring.deserve.it.api.Inject;
 import spring.deserve.it.api.RPSEnum;
 import spring.deserve.it.api.Spider;
@@ -35,4 +34,3 @@ public class StatisticalSpider extends AbstractSpider {
         }
     }
 }
-

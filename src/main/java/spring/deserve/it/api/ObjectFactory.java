@@ -1,48 +1,55 @@
 package spring.deserve.it.api;
 
 import lombok.SneakyThrows;
-import org.reflections.Reflections;
-import spring.deserve.it.game.PaperSpider;
+import org.reflections.ReflectionUtils;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
-public class ObjectFactory {
-
-    // Единственный экземпляр класса
+public class ObjectFactory  {
     private static final ObjectFactory INSTANCE = new ObjectFactory();
 
-    private final List<ObjectConfigurator> configurators = new ArrayList<>();
+    // Мапа для хранения всех конфигураторов по их классам
+    private final Map<Class<?>, ObjectConfigurator> configurators = new HashMap<>();
 
-    // Приватный конструктор, чтобы предотвратить создание экземпляров извне
     private ObjectFactory() {
-        // Используем Reflections для поиска всех классов, реализующих ObjectConfigurator
-        Reflections reflections = new Reflections("spring.deserve.it"); // Укажите свой пакет здесь
-        Set<Class<? extends ObjectConfigurator>> configuratorClasses = reflections.getSubTypesOf(ObjectConfigurator.class);
-
-        // Создаем экземпляры конфигураторов и добавляем их в список
-        for (Class<? extends ObjectConfigurator> configuratorClass : configuratorClasses) {
-            try {
-                configurators.add(configuratorClass.getDeclaredConstructor().newInstance());
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to create configurator instance: " + configuratorClass, e);
-            }
-        }
+        // Регистрация конфигураторов. Каждый конфигуратор добавляется с соответствующим классом.
+        configurators.put(PropertyObjectConfigurator.class, new PropertyObjectConfigurator());
+        injectDependencies(this); // Инъекция зависимостей для ObjectFactory, если нужно
     }
 
-    // Публичный метод для получения экземпляра
     public static ObjectFactory getInstance() {
         return INSTANCE;
     }
 
     @SneakyThrows
-    public <T> T createObject(Class<T> type) {
-        T t = type.getDeclaredConstructor().newInstance();
+    public <T> T createObject(Class<T> clazz) {
+        T instance = clazz.getDeclaredConstructor().newInstance();
+        configureObject(instance); // Настройка объекта через конфигураторы
+        injectDependencies(instance); // Инъекция зависимостей для создаваемого объекта
+        return instance;
+    }
 
+    private void configureObject(Object obj) {
+        // Проходим по всем конфигураторам и вызываем их метод configure
+        for (ObjectConfigurator configurator : configurators.values()) {
+            configurator.configure(obj);
+        }
+    }
 
-        configurators.forEach(configurator -> configurator.configure(t));
-
-        return t;
+    @SneakyThrows
+    private void injectDependencies(Object target) {
+        Class<?> clazz = target.getClass();
+        Set<Field> fields = ReflectionUtils.getAllFields(clazz);
+        for (Field field : fields) {
+            if (field.isAnnotationPresent(Inject.class)) {
+                Class<?> fieldType = field.getType();
+                Object dependency = createObject(fieldType);
+                field.setAccessible(true);
+                field.set(target, dependency);
+            }
+        }
     }
 }
